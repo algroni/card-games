@@ -4,8 +4,7 @@
   "private": true,
 "scripts": {
   "start": "expo start",
-  "build": "npx expo export -p web",
-  "install": "npm install"
+  "build": "npx expo export -p web"
 },
   "dependencies": {
     "@expo/metro-runtime": "^6.1.2",
