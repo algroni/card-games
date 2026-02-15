@@ -7,6 +7,9 @@
       "android",
       "web"
     ],
+    "web": {
+      "bundler": "metro" 
+    },
     "version": "1.0.0",
     "sdkVersion": "48.0.0",
     "android": {
