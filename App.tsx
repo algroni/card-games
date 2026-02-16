@@ -140,6 +140,12 @@ export default function App() {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
   };
 
+  const chunkArray = (arr: any[], size: number) => {
+    return Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
+      arr.slice(i * size, i * size + size)
+    );
+  };
+
   if (loading || !remaining) {
     return (
       <SafeAreaView style={styles.container}>
@@ -195,28 +201,42 @@ export default function App() {
 
         </View>
         
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.playersList}>
-          {players.map(player => (
-            <View key={player.id} style={styles.playerChip}>
-              {/* Individual Remove Button */}
-              <TouchableOpacity 
-                style={styles.removeIcon} 
-                onPress={() => removePlayer(player.id)}
-              >
-                <Text style={styles.removeIconText}>×</Text>
-              </TouchableOpacity>
-              <Text style={styles.playerNameText}>{player.name}</Text>
-              <Text style={styles.playerScoreText}>{player.score}</Text>
-              <View style={styles.scoreControls}>
-                <TouchableOpacity onPress={() => updateScore(player.id, -1)} style={styles.scoreBtn}>
-                  <Text style={styles.scoreBtnText}>-</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => updateScore(player.id, 1)} style={styles.scoreBtn}>
-                  <Text style={styles.scoreBtnText}>+</Text>
-                </TouchableOpacity>
-              </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.playersList}>         
+
+            <View style={styles.playerSection}>
+              {/* ... your input row ... */}
+
+              {chunkArray(players, 4).map((row, rowIndex) => (
+                <View key={`row-${rowIndex}`} style={styles.playerRow}>
+                  {row.map((player) => (
+
+                        <View key={player.id} style={styles.playerChip}>
+                          
+                          <TouchableOpacity 
+                            style={styles.removeIcon} 
+                            onPress={() => removePlayer(player.id)}
+                          >
+                            <Text style={styles.removeIconText}>×</Text>
+                          </TouchableOpacity>
+                          <Text style={styles.playerNameText}>{player.name}</Text>
+                          <Text style={styles.playerScoreText}>{player.score}</Text>
+                          <View style={styles.scoreControls}>
+                            <TouchableOpacity onPress={() => updateScore(player.id, -1)} style={styles.scoreBtn}>
+                              <Text style={styles.scoreBtnText}>-</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => updateScore(player.id, 1)} style={styles.scoreBtn}>
+                              <Text style={styles.scoreBtnText}>+</Text>
+                            </TouchableOpacity>
+                          </View>
+                          
+                        </View>
+
+                  ))}
+                </View>
+              ))}
             </View>
-          ))}
+
+
         </ScrollView>
       </View>
 
@@ -407,8 +427,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     lineHeight: 18
+  },
+  playersGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap', // This makes players go to the next line
+    justifyContent: 'flex-start',
+    width: '100%',
+  },
+  fullWidthDivider: {
+    flexBasis: '100%', // This is the "Enter" key for Flexbox
+    height: 0,         // Invisible
+  },
+playerRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start', // Keeps cards to the left
+    width: '100%',
+    marginBottom: 10, // Space between rows
   }
-
 });
  
 // Additional styles for new layout
