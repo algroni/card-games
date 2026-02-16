@@ -1,11 +1,15 @@
 import React, {useEffect, useState, useCallback, useRef} from 'react';
-import {SafeAreaView, StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Alert, Animated, Easing, TouchableWithoutFeedback} from 'react-native';
+import {SafeAreaView, StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Alert, Animated, Easing, TouchableWithoutFeedback, TextInput, ScrollView} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import words from './src/data/words.json';
 
-type Word = { id: number; en: string; es: string };
+type Word = { id: number; en: string; es: string; level: number };
+
+type Player = { id: string; name: string; score: number };
 
 const STORAGE_KEY = 'remainingWordIds_v1';
+
+const PLAYERS_KEY = 'players_list_v1';
 
 function shuffle<T>(arr: T[]) {
   const a = arr.slice();
@@ -20,6 +24,11 @@ export default function App() {
   const [remaining, setRemaining] = useState<number[] | null>(null);
   const [current, setCurrent] = useState<Word | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Player States
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [newPlayerName, setNewPlayerName] = useState('');
+
   const scale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -36,6 +45,11 @@ export default function App() {
           setCurrent(wordById(ids[0]));
           await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
         }
+
+        // Load Players
+        const rawPlayers = await AsyncStorage.getItem(PLAYERS_KEY);
+        if (rawPlayers) setPlayers(JSON.parse(rawPlayers));
+
       } catch (e) {
         Alert.alert('Error','Failed to load progress');
       } finally {
@@ -49,6 +63,60 @@ export default function App() {
     const w = words.find(x => x.id === id);
     return w ?? null;
   }, []);
+
+// --- Player Logic ---
+  const addPlayer = async () => {
+    if (newPlayerName.trim().length === 0) return;
+    const newP: Player = { id: Date.now().toString(), name: newPlayerName, score: 0 };
+    const updated = [...players, newP];
+    setPlayers(updated);
+    setNewPlayerName('');
+    await AsyncStorage.setItem(PLAYERS_KEY, JSON.stringify(updated));
+  };
+
+  const removePlayer = async (id: string) => {
+    const updated = players.filter(p => p.id !== id);
+    setPlayers(updated);
+    await AsyncStorage.setItem(PLAYERS_KEY, JSON.stringify(updated));
+  };
+
+  const clearAllPlayers = async () => {
+    const message = "Are you sure you want to remove everyone?";
+    
+    // Check if we are on Web or Mobile
+    const confirmed = typeof window !== 'undefined' && window.confirm 
+      ? window.confirm(message) 
+      : true; // Fallback for mobile logic below
+
+    if (confirmed) {
+      if (typeof window !== 'undefined' && window.confirm) {
+        // Web Logic
+        setPlayers([]);
+        await AsyncStorage.setItem(PLAYERS_KEY, JSON.stringify([]));
+      } else {
+        // Mobile Logic (Native Alert)
+        Alert.alert("Clear All", message, [
+          { text: "Cancel", style: "cancel" },
+          { 
+            text: "Remove All", 
+            style: "destructive", 
+            onPress: async () => {
+              setPlayers([]);
+              await AsyncStorage.setItem(PLAYERS_KEY, JSON.stringify([]));
+            } 
+          }
+        ]);
+      }
+    }
+  };
+
+  const updateScore = async (id: string, delta: number) => {
+    const updated = players.map(p => 
+      p.id === id ? { ...p, score: Math.max(0, p.score + delta) } : p
+    );
+    setPlayers(updated);
+    await AsyncStorage.setItem(PLAYERS_KEY, JSON.stringify(updated));
+  };
 
   const removeCurrent = async () => {
     if (!remaining || remaining.length === 0) return;
@@ -85,7 +153,6 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        {/* <Text style={styles.headerText}>Cards remaining</Text> */}
         <View style={styles.headerRight}>
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{remaining.length}</Text>
@@ -97,31 +164,92 @@ export default function App() {
         </View>
       </View>
 
+{/* PLAYER MANAGEMENT SECTION */}
+      <View style={styles.playerSection}>
+        <View style={styles.playerInputRow}>
+          <TextInput 
+            style={styles.playerInput} 
+            placeholder="New Player Name..." 
+            value={newPlayerName}
+            onChangeText={setNewPlayerName}
+          />
+          <TouchableOpacity onPress={addPlayer} style={styles.addPlayerButton}>
+            <Text style={styles.addPlayerButtonText}>Add</Text>
+          </TouchableOpacity>
+          {/* {players.length > 0 && (
+            <TouchableOpacity onPress={clearAllPlayers} style={styles.clearAllButton}>
+               <Text style={styles.clearAllText}>Clear All</Text>
+            </TouchableOpacity>
+          )} */}
+
+        {/* Clear All Button */}
+          {players.length > 0 && (
+            <TouchableOpacity 
+              onPress={clearAllPlayers} 
+              style={styles.clearAllButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.clearAllText}>Clear All</Text>
+            </TouchableOpacity>
+          )}
+
+        </View>
+        
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.playersList}>
+          {players.map(player => (
+            <View key={player.id} style={styles.playerChip}>
+              {/* Individual Remove Button */}
+              <TouchableOpacity 
+                style={styles.removeIcon} 
+                onPress={() => removePlayer(player.id)}
+              >
+                <Text style={styles.removeIconText}>×</Text>
+              </TouchableOpacity>
+              <Text style={styles.playerNameText}>{player.name}</Text>
+              <Text style={styles.playerScoreText}>{player.score}</Text>
+              <View style={styles.scoreControls}>
+                <TouchableOpacity onPress={() => updateScore(player.id, -1)} style={styles.scoreBtn}>
+                  <Text style={styles.scoreBtnText}>-</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => updateScore(player.id, 1)} style={styles.scoreBtn}>
+                  <Text style={styles.scoreBtnText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+
+
       {current ? (
         <TouchableWithoutFeedback onPress={removeCurrent} disabled={remaining.length===0}>
           <Animated.View style={[styles.card, {transform:[{scale}]} as any]}>
 
- <View style={styles.innerFrame}>
-  <View style={[styles.cornerGem, { top: 10, left: 10 }]} />
-  <View style={[styles.cornerGem, { top: 10, right: 10 }]} />
+            <View style={styles.innerFrame}>
+              <View style={[styles.cornerGem, { top: 10, left: 10 }]} />
+              <View style={[styles.cornerGem, { top: 10, right: 10 }]} />
 
-  <View style={styles.labelBadge}>
-    <Text style={styles.labelText}>English</Text>
-  </View>
+              <View style={styles.labelBadge}>
+                <Text style={styles.labelText}>{current.level}</Text>
+              </View>
 
-  <Text style={styles.wordLarge}>{current.en}</Text>
+              <View style={styles.labelBadge}>
+                <Text style={styles.labelText}>English</Text>
+              </View>
 
-  <View style={{ height: 24 }} />
+              <Text style={styles.wordLarge}>{current.en}</Text>
 
-  <View style={styles.labelBadge}>
-    <Text style={styles.labelText}>Español</Text>
-  </View>
+              <View style={{ height: 24 }} />
 
-  <Text style={styles.wordLarge}>{current.es}</Text>
+              <View style={styles.labelBadge}>
+                <Text style={styles.labelText}>Español</Text>
+              </View>
 
-  <View style={[styles.cornerGem, { bottom: 10, left: 10 }]} />
-  <View style={[styles.cornerGem, { bottom: 10, right: 10 }]} />
- </View>
+              <Text style={styles.wordLarge}>{current.es}</Text>
+
+              <View style={[styles.cornerGem, { bottom: 10, left: 10 }]} />
+              <View style={[styles.cornerGem, { bottom: 10, right: 10 }]} />
+            </View>
           </Animated.View>
         </TouchableWithoutFeedback>
       ) : (
@@ -229,7 +357,58 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1,
     },
-    resetButtonLarge: {marginTop:12, padding:10, backgroundColor:'#0a84ff', borderRadius:8}
+    resetButtonLarge: {marginTop:12, padding:10, backgroundColor:'#0a84ff', borderRadius:8},
+
+// New Player Styles
+  playerSection: {paddingHorizontal: 20, marginBottom: 20},
+  playerInputRow: {flexDirection: 'row', marginBottom: 10},
+  playerInput: {flex: 1, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 10, height: 40},
+  addPlayerButton: {backgroundColor: '#5B2D82', paddingHorizontal: 15, justifyContent: 'center', borderRadius: 8, marginLeft: 10},
+  addPlayerButtonText: {color: '#fff', fontWeight: 'bold'},
+  playersList: {flexDirection: 'row'},
+  playerChip: {backgroundColor: '#fff', padding: 10, borderRadius: 12, marginRight: 10, borderWidth: 1, borderColor: '#eee', alignItems: 'center', minWidth: 80},
+  playerNameText: {fontSize: 12, fontWeight: 'bold', color: '#666'},
+  playerScoreText: {fontSize: 20, fontWeight: '800', color: '#5B2D82', marginVertical: 2},
+  scoreControls: {flexDirection: 'row'},
+  scoreBtn: {backgroundColor: '#f0f0f0', width: 25, height: 25, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginHorizontal: 2},
+  scoreBtnText: {fontWeight: 'bold', fontSize: 16},
+  clearAllButton: {
+    backgroundColor: '#FFF1F0', // light red tint
+    borderWidth: 1,
+    borderColor: '#FF3B30',
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+    borderRadius: 8,
+    marginLeft: 8,
+    minWidth: 70, 
+    height: 40, // match input height
+    zIndex: 99, 
+  },
+  clearAllText: {
+    color: '#FF3B30',
+    fontWeight: 'bold',
+    fontSize: 11,
+    textAlign: 'center'
+  },
+  removeIcon: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#FF3B30',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1
+  },
+  removeIconText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    lineHeight: 18
+  }
+
 });
  
 // Additional styles for new layout
