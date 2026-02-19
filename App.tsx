@@ -146,6 +146,44 @@ export default function App() {
     );
   };
 
+  const resetAllScores = async () => {
+
+    const message = "Set all player scores back to zero?";
+    
+    // Check if we are on Web or Mobile
+    const confirmed = typeof window !== 'undefined' && window.confirm 
+      ? window.confirm(message) 
+      : true; // Fallback for mobile logic below
+
+    if (confirmed) {
+      const resetPlayers = players.map(p => ({ ...p, score: 0 }));
+      setPlayers(resetPlayers);
+      if (typeof window !== 'undefined' && window.confirm) {
+        // Web Logic
+        await AsyncStorage.setItem(PLAYERS_KEY, JSON.stringify(resetPlayers));
+      } else {
+        // Mobile Logic (Native Alert)
+        Alert.alert(
+          "Reset Scores",
+          "Set all player scores back to zero?",
+          [
+            { text: "Cancel", style: "cancel" },
+            { 
+              text: "Reset", 
+              onPress: async () => {
+                await AsyncStorage.setItem(PLAYERS_KEY, JSON.stringify(resetPlayers));
+              } 
+            }
+          ]
+        );
+      }
+    }
+
+
+
+
+  };  
+
   if (loading || !remaining) {
     return (
       <SafeAreaView style={styles.container}>
@@ -179,24 +217,27 @@ export default function App() {
             value={newPlayerName}
             onChangeText={setNewPlayerName}
           />
-          <TouchableOpacity onPress={addPlayer} style={styles.addPlayerButton}>
-            <Text style={styles.addPlayerButtonText}>Add</Text>
-          </TouchableOpacity>
-          {/* {players.length > 0 && (
-            <TouchableOpacity onPress={clearAllPlayers} style={styles.clearAllButton}>
-               <Text style={styles.clearAllText}>Clear All</Text>
+          <View style={styles.actionButtonsRow}>
+            <TouchableOpacity onPress={addPlayer} style={styles.addPlayerButton}>
+              <Text style={styles.addPlayerButtonText}>Add</Text>
             </TouchableOpacity>
-          )} */}
-
-        {/* Clear All Button */}
+          </View>
+          {/* Clear Buttons */}
           {players.length > 0 && (
-            <TouchableOpacity 
-              onPress={clearAllPlayers} 
-              style={styles.clearAllButton}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={styles.clearAllText}>Clear All</Text>
-            </TouchableOpacity>
+            <View style={styles.actionButtonsRow}>
+              <TouchableOpacity onPress={resetAllScores} style={styles.resetScoresButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={styles.resetScoresText}>↺ Reset Scores</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                onPress={clearAllPlayers} 
+                style={styles.clearAllButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.clearAllText}>x Clear Players</Text>
+              </TouchableOpacity>
+            </View>
           )}
 
         </View>
@@ -383,7 +424,7 @@ const styles = StyleSheet.create({
   playerSection: {paddingHorizontal: 20, marginBottom: 20},
   playerInputRow: {flexDirection: 'row', marginBottom: 10},
   playerInput: {flex: 1, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 10, height: 40},
-  addPlayerButton: {backgroundColor: '#5B2D82', paddingHorizontal: 15, justifyContent: 'center', borderRadius: 8, marginLeft: 10},
+  addPlayerButton: {backgroundColor: '#5B2D82', paddingHorizontal: 10, justifyContent: 'center', borderRadius: 8, marginLeft: 10},
   addPlayerButtonText: {color: '#fff', fontWeight: 'bold'},
   playersList: {flexDirection: 'row'},
   playerChip: {backgroundColor: '#fff', padding: 10, borderRadius: 12, marginRight: 10, borderWidth: 1, borderColor: '#eee', alignItems: 'center', minWidth: 80},
@@ -443,7 +484,40 @@ playerRow: {
     justifyContent: 'flex-start', // Keeps cards to the left
     width: '100%',
     marginBottom: 10, // Space between rows
-  }
+  },
+actionButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 10,
+  },
+
+  resetScoresButton: {
+    backgroundColor: '#FFF1F0', // light red tint
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+    borderRadius: 8,
+    marginLeft: 8,
+    minWidth: 70, 
+    height: 40, // match input height
+    zIndex: 99, 
+  },
+
+  // resetScoresButton: {
+  //   backgroundColor: '#FFFBEB', // light yellow/orange tint
+  //   borderWidth: 1,
+  //   borderColor: '#F59E0B',
+  //   paddingHorizontal: 10,
+  //   paddingVertical: 6,
+  //   borderRadius: 8,
+  //   marginRight: 8,
+  // },
+  resetScoresText: {
+    color: '#D97706',
+    fontWeight: 'bold',
+    fontSize: 12,
+  }  
 });
  
 // Additional styles for new layout
