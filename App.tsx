@@ -217,11 +217,13 @@ export default function App() {
             value={newPlayerName}
             onChangeText={setNewPlayerName}
           />
-          <View style={styles.actionButtonsRow}>
-            <TouchableOpacity onPress={addPlayer} style={styles.addPlayerButton}>
-              <Text style={styles.addPlayerButtonText}>Add</Text>
-            </TouchableOpacity>
-          </View>
+
+          <TouchableOpacity onPress={addPlayer} style={styles.addPlayerButton}>
+            <Text style={styles.addPlayerButtonText}>Add</Text>
+          </TouchableOpacity>
+
+        </View>
+
           {/* Clear Buttons */}
           {players.length > 0 && (
             <View style={styles.actionButtonsRow}>
@@ -240,7 +242,7 @@ export default function App() {
             </View>
           )}
 
-        </View>
+        
         
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.playersList}>         
 
@@ -427,7 +429,7 @@ const styles = StyleSheet.create({
   addPlayerButton: {backgroundColor: '#5B2D82', paddingHorizontal: 10, justifyContent: 'center', borderRadius: 8, marginLeft: 10},
   addPlayerButtonText: {color: '#fff', fontWeight: 'bold'},
   playersList: {flexDirection: 'row'},
-  playerChip: {backgroundColor: '#fff', padding: 10, borderRadius: 12, marginRight: 10, borderWidth: 1, borderColor: '#eee', alignItems: 'center', minWidth: 80},
+  playerChip: {backgroundColor: '#fff', padding: 10, borderRadius: 12, marginRight: 5, borderWidth: 1, borderColor: '#eee', alignItems: 'center', minWidth: 80},
   playerNameText: {fontSize: 12, fontWeight: 'bold', color: '#666'},
   playerScoreText: {fontSize: 20, fontWeight: '800', color: '#5B2D82', marginVertical: 2},
   scoreControls: {flexDirection: 'row'},
@@ -487,7 +489,7 @@ playerRow: {
   },
 actionButtonsRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    // justifyContent: 'flex-end',
     marginBottom: 10,
   },
 
