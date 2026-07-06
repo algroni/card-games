@@ -1,5 +1,5 @@
 import React, {useEffect, useState, useCallback, useRef} from 'react';
-import {SafeAreaView, StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Alert, Animated, Easing, TouchableWithoutFeedback, TextInput, ScrollView} from 'react-native';
+import {SafeAreaView, StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Alert, Animated, Easing, TouchableWithoutFeedback, TextInput, ScrollView, useWindowDimensions, Platform} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import words from './src/data/words.json';
 
@@ -30,6 +30,11 @@ export default function App() {
   const [newPlayerName, setNewPlayerName] = useState('');
 
   const scale = useRef(new Animated.Value(1)).current;
+
+  // Responsive sizing
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 480;
+  const wordFontSize = isNarrow ? 26 : 32;
 
   useEffect(() => {
     (async () => {
@@ -84,12 +89,12 @@ export default function App() {
     const message = "Are you sure you want to remove everyone?";
     
     // Check if we are on Web or Mobile
-    const confirmed = typeof window !== 'undefined' && window.confirm 
-      ? window.confirm(message) 
+    const confirmed = Platform.OS === 'web'
+      ? window.confirm(message)
       : true; // Fallback for mobile logic below
 
     if (confirmed) {
-      if (typeof window !== 'undefined' && window.confirm) {
+      if (Platform.OS === 'web') {
         // Web Logic
         setPlayers([]);
         await AsyncStorage.setItem(PLAYERS_KEY, JSON.stringify([]));
@@ -140,25 +145,19 @@ export default function App() {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
   };
 
-  const chunkArray = (arr: any[], size: number) => {
-    return Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
-      arr.slice(i * size, i * size + size)
-    );
-  };
-
   const resetAllScores = async () => {
 
     const message = "Set all player scores back to zero?";
     
     // Check if we are on Web or Mobile
-    const confirmed = typeof window !== 'undefined' && window.confirm 
-      ? window.confirm(message) 
+    const confirmed = Platform.OS === 'web'
+      ? window.confirm(message)
       : true; // Fallback for mobile logic below
 
     if (confirmed) {
       const resetPlayers = players.map(p => ({ ...p, score: 0 }));
       setPlayers(resetPlayers);
-      if (typeof window !== 'undefined' && window.confirm) {
+      if (Platform.OS === 'web') {
         // Web Logic
         await AsyncStorage.setItem(PLAYERS_KEY, JSON.stringify(resetPlayers));
       } else {
@@ -186,7 +185,7 @@ export default function App() {
 
   if (loading || !remaining) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, {alignItems:'center', justifyContent:'center'}]}>
         <ActivityIndicator size="large" />
       </SafeAreaView>
     );
@@ -196,6 +195,12 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+      <View style={styles.content}>
       <View style={styles.header}>
         <View style={styles.headerRight}>
           <View style={styles.badge}>
@@ -244,43 +249,30 @@ export default function App() {
 
         
         
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.playersList}>         
+        <View style={styles.playersGrid}>
+          {players.map((player) => (
+            <View key={player.id} style={styles.playerChip}>
 
-            <View style={styles.playerSection}>
-              {/* ... your input row ... */}
+              <TouchableOpacity
+                style={styles.removeIcon}
+                onPress={() => removePlayer(player.id)}
+              >
+                <Text style={styles.removeIconText}>×</Text>
+              </TouchableOpacity>
+              <Text style={styles.playerNameText} numberOfLines={1}>{player.name}</Text>
+              <Text style={styles.playerScoreText}>{player.score}</Text>
+              <View style={styles.scoreControls}>
+                <TouchableOpacity onPress={() => updateScore(player.id, -1)} style={styles.scoreBtn}>
+                  <Text style={styles.scoreBtnText}>-</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => updateScore(player.id, 1)} style={styles.scoreBtn}>
+                  <Text style={styles.scoreBtnText}>+</Text>
+                </TouchableOpacity>
+              </View>
 
-              {chunkArray(players, 4).map((row, rowIndex) => (
-                <View key={`row-${rowIndex}`} style={styles.playerRow}>
-                  {row.map((player) => (
-
-                        <View key={player.id} style={styles.playerChip}>
-                          
-                          <TouchableOpacity 
-                            style={styles.removeIcon} 
-                            onPress={() => removePlayer(player.id)}
-                          >
-                            <Text style={styles.removeIconText}>×</Text>
-                          </TouchableOpacity>
-                          <Text style={styles.playerNameText}>{player.name}</Text>
-                          <Text style={styles.playerScoreText}>{player.score}</Text>
-                          <View style={styles.scoreControls}>
-                            <TouchableOpacity onPress={() => updateScore(player.id, -1)} style={styles.scoreBtn}>
-                              <Text style={styles.scoreBtnText}>-</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={() => updateScore(player.id, 1)} style={styles.scoreBtn}>
-                              <Text style={styles.scoreBtnText}>+</Text>
-                            </TouchableOpacity>
-                          </View>
-                          
-                        </View>
-
-                  ))}
-                </View>
-              ))}
             </View>
-
-
-        </ScrollView>
+          ))}
+        </View>
       </View>
 
 
@@ -300,7 +292,7 @@ export default function App() {
                 <Text style={styles.labelText}>English</Text>
               </View>
 
-              <Text style={styles.wordLarge}>{current.en}</Text>
+              <Text style={[styles.wordLarge, {fontSize: wordFontSize}]}>{current.en}</Text>
 
               <View style={{ height: 24 }} />
 
@@ -308,7 +300,7 @@ export default function App() {
                 <Text style={styles.labelText}>Español</Text>
               </View>
 
-              <Text style={styles.wordLarge}>{current.es}</Text>
+              <Text style={[styles.wordLarge, {fontSize: wordFontSize}]}>{current.es}</Text>
 
               <View style={[styles.cornerGem, { bottom: 10, left: 10 }]} />
               <View style={[styles.cornerGem, { bottom: 10, right: 10 }]} />
@@ -325,12 +317,17 @@ export default function App() {
       )}
 
       {/* bottom controls removed; reset moved to header */}
+      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {flex:1, alignItems:'center', justifyContent:'center', padding:20, backgroundColor:'#fafafa'},
+  container: {flex:1, backgroundColor:'#fafafa'},
+  scroll: {flex:1, width:'100%'},
+  scrollContent: {flexGrow:1, alignItems:'center', justifyContent:'center', padding:20},
+  content: {width:'100%', maxWidth:560, alignItems:'stretch'},
   header: {width:'100%', flexDirection:'row', justifyContent:'space-between', alignItems:'center', backgroundColor:'#f9f9f9'},
   resetButton: {padding:8, backgroundColor:'#eee', borderRadius:6},
   resetText: {fontSize:14},
@@ -423,13 +420,13 @@ const styles = StyleSheet.create({
     resetButtonLarge: {marginTop:12, padding:10, backgroundColor:'#0a84ff', borderRadius:8},
 
 // New Player Styles
-  playerSection: {paddingHorizontal: 20, marginBottom: 20},
+  playerSection: {width: '100%', marginBottom: 20},
   playerInputRow: {flexDirection: 'row', marginBottom: 10},
   playerInput: {flex: 1, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 10, height: 40},
   addPlayerButton: {backgroundColor: '#5B2D82', paddingHorizontal: 10, justifyContent: 'center', borderRadius: 8, marginLeft: 10},
   addPlayerButtonText: {color: '#fff', fontWeight: 'bold'},
   playersList: {flexDirection: 'row'},
-  playerChip: {backgroundColor: '#fff', padding: 10, borderRadius: 12, marginRight: 5, borderWidth: 1, borderColor: '#eee', alignItems: 'center', minWidth: 80},
+  playerChip: {backgroundColor: '#fff', padding: 10, borderRadius: 12, marginRight: 8, marginBottom: 8, borderWidth: 1, borderColor: '#eee', alignItems: 'center', minWidth: 80, maxWidth: 120},
   playerNameText: {fontSize: 12, fontWeight: 'bold', color: '#666'},
   playerScoreText: {fontSize: 20, fontWeight: '800', color: '#5B2D82', marginVertical: 2},
   scoreControls: {flexDirection: 'row'},
@@ -473,7 +470,7 @@ const styles = StyleSheet.create({
   },
   playersGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap', // This makes players go to the next line
+    flexWrap: 'wrap', // chips reflow to the next line based on available width
     justifyContent: 'flex-start',
     width: '100%',
   },
@@ -489,7 +486,7 @@ playerRow: {
   },
 actionButtonsRow: {
     flexDirection: 'row',
-    // justifyContent: 'flex-end',
+    flexWrap: 'wrap',
     marginBottom: 10,
   },
 

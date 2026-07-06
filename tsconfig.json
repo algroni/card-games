@@ -1,15 +1,16 @@
 {
   "compilerOptions": {
     "target": "esnext",
-    "module": "commonjs",
+    "module": "esnext",
     "jsx": "react",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
-    "allowJs": true
+    "allowJs": true,
+    "types": ["react"]
   },
   "extends": "expo/tsconfig.base"
 }
